@@ -51,10 +51,10 @@ for itHJB = 1:maxitHJB
 
     % forward difference
     dVda_f(1:nval_a-1,:,:,:) = (V0(2:nval_a,:,:,:)-V0(1:nval_a-1,:,:,:))/da;
-    dVda_f(nval_a,:,:,:)     = (w(nval_a,:,:,:).*z(nval_a,:,:,:) + r(nval_a,:,:,:).*amax).^(-gamma);    % will never be used, but impose state constraint a<=amax just in case
+    dVda_f(nval_a,:,:,:)     = (yi(nval_a,:,:,:) + r(nval_a,:,:,:).*amax).^(-gamma);    % will never be used, but impose state constraint a<=amax just in case
     % backward difference
     dVda_b(2:nval_a,:,:,:)   = (V0(2:nval_a,:,:,:)-V0(1:nval_a-1,:,:,:))/da;
-    dVda_b(1,:,:,:)          = (w(1,:,:,:).*z(1,:,:,:) + r(1,:,:,:).*amin).^(-gamma);                   % state constraint boundary condition
+    dVda_b(1,:,:,:)          = (yi(1,:,:,:) + r(1,:,:,:).*amin).^(-gamma);                   % state constraint boundary condition
     
     dVdB(:,:,1:nval_B-1,:)   = (V0(:,:,2:nval_B,:)-V0(:,:,1:nval_B-1,:))/dB;                            % zero in the upper boundary
     dVdN(:,:,:,1:nval_N-1)   = (V0(:,:,:,2:nval_N)-V0(:,:,:,1:nval_N-1))/dN;                            % zero in the upper boundary
@@ -65,12 +65,12 @@ for itHJB = 1:maxitHJB
     
     % consumption and savings with forward difference
     cf           = (dVda_f).^(-1/gamma);
-    sf           = w.*z + r.*a - cf;
+    sf           = yi + r.*a - cf;
     % consumption and savings with backward difference
     cb           = (dVda_b).^(-1/gamma);
-    sb           = w.*z + r.*a - cb;
+    sb           = yi + r.*a - cb;
     % consumption and derivative of value function at non-difference
-    c0           = w.*z + r.*a;
+    c0           = yi + r.*a;
     dVda_0       = c0.^(-gamma);
     
     % dV_upwind makes a choice of forward or backward differences based on
@@ -186,9 +186,9 @@ end
 
 HJB_check = zeros(nval_a, nval_z, nval_B, nval_N);
 
-HJB_check(:,1,:,:) = -rho*V1(:,1,:,:) + (c(:,1,:,:).^(1-gamma)-1)/(1-gamma) + (w(:,1,:,:).*z(:,1,:,:)+r(:,1,:,:).*a(:,1,:,:)-c(:,1,:,:)).*dVda_upwind(:,1,:,:) + la1*(V1(:,2,:,:)-V1(:,1,:,:)) + PLM(:,1,:,:).*dVdB(:,1,:,:) + (elem_m(:,1,:,:)).*dVdN(:,1,:,:) + (((elem_s(:,1,:,:)).^2)/2).*d2VddN(:,1,:,:);
+HJB_check(:,1,:,:) = -rho*V1(:,1,:,:) + (c(:,1,:,:).^(1-gamma)-1)/(1-gamma) + (yi(:,1,:,:)+r(:,1,:,:).*a(:,1,:,:)-c(:,1,:,:)).*dVda_upwind(:,1,:,:) + la1*(V1(:,2,:,:)-V1(:,1,:,:)) + PLM(:,1,:,:).*dVdB(:,1,:,:) + (elem_m(:,1,:,:)).*dVdN(:,1,:,:) + (((elem_s(:,1,:,:)).^2)/2).*d2VddN(:,1,:,:);
 
-HJB_check(:,2,:,:) = -rho*V1(:,2,:,:) + (c(:,2,:,:).^(1-gamma)-1)/(1-gamma) + (w(:,2,:,:).*z(:,2,:,:)+r(:,2,:,:).*a(:,2,:,:)-c(:,2,:,:)).*dVda_upwind(:,2,:,:) + la2*(V1(:,1,:,:)-V1(:,2,:,:)) + PLM(:,2,:,:).*dVdB(:,2,:,:) + (elem_m(:,2,:,:)).*dVdN(:,2,:,:) + (((elem_s(:,2,:,:)).^2)/2).*d2VddN(:,2,:,:);
+HJB_check(:,2,:,:) = -rho*V1(:,2,:,:) + (c(:,2,:,:).^(1-gamma)-1)/(1-gamma) + (yi(:,2,:,:)+r(:,2,:,:).*a(:,2,:,:)-c(:,2,:,:)).*dVda_upwind(:,2,:,:) + la2*(V1(:,1,:,:)-V1(:,2,:,:)) + PLM(:,2,:,:).*dVdB(:,2,:,:) + (elem_m(:,2,:,:)).*dVdN(:,2,:,:) + (((elem_s(:,2,:,:)).^2)/2).*d2VddN(:,2,:,:);
 
 HJB_check_stacked = zeros(nval_a*nval_z*nval_B*nval_N,1);
 for iN=2:nval_N-1

@@ -2,6 +2,8 @@
 % Financial Frictions and the Wealth Distribution
 % This script launches the routines in charge of solving the model, plotting the results and saving them
 
+% New feature, countercyclical income risk
+
 clear all
 close all
 clc
@@ -33,8 +35,8 @@ cd ..
 
 % make sure important stuff is in memory
 
-b1_parameters;
 load './steadystate/ss_results';
+b1_parameters;
 
 load_PLM       = 'load  ''./model_LR/z_FinalWorkspace.mat'' PLM PLM_2 PLM_finegrid PLM_finegrid_2 PLM_visits;';
 load_LR_errors = 'load ''../model_LR/z_FinalWorkspace.mat'' Y Y_fit;';

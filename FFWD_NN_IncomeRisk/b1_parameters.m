@@ -163,7 +163,15 @@ w = (1-alpha) * Zeta * (B+N).^alpha;
 
 % construct grid for countercyclical income
 avg_zi = zeros(nval_a, nval_z, nval_B, nval_N);  %grid for cross section average of income
-Y = Zeta * (B+N).^alpha;  
+Y_grid = Zeta * (B+N).^alpha;
+
+income_risk_term = 1 + eta.*log(Y_grid./Y_ss);
+if any(income_risk_term(:) < 0)
+    warning('CountercyclicalIncomeRisk:NegativeSqrt', ...
+        'The countercyclical-income square-root argument is negative.');
+    error('Stopping because the income process would produce complex values.');
+end
+
 
 for iB=1:nval_B
     for iN=1:nval_N
@@ -173,5 +181,5 @@ for iB=1:nval_B
     end
 end
 
-yi = z.^(  sqrt.( 1.+ eta.*log.(Y./Y_ss) )   )./avg_zi .* w ; 
+yi = z.^(  sqrt.( 1.+ eta.*log.(Y_grid./Y_ss) )   )./avg_zi .* w ;
 

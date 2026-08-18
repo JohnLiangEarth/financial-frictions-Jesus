@@ -3,8 +3,8 @@
 
 % load parameters
 
-run ('../b1_parameters')
 load '../steadystate/ss_results'
+run ('../b1_parameters')
 
 % solve model using linear regression for PLM
 

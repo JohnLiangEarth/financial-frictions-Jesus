@@ -3,7 +3,7 @@
 
 clear all; clc;
 
-run('../b1_parameters')
+run('b1_parameters')
 
 
 I        = nval_a;                          % number of points in amin-to-amax range (individual savings)
@@ -38,7 +38,9 @@ parameters.weK    = weK;
 K            = ((rhohat+delta)/alpha)^(1/(alpha-1)); 
 results      = b3_HJB_stationary(parameters,K);
 distribution = b4_KFE_stationary(parameters,results);
- 
+
+Y_ss = Zeta* K^alpha * 1^(1-alpha)  ;  % New ss number: needed in the procyclicality formulation.
+
 c1_Moments
 c2_plotting
 
@@ -47,4 +49,4 @@ g_ss = distribution;
 A_ss = results.A;
 K_ss = K;
 N_ss = K_ss - B_ss;
-save 'ss_results.mat' A_ss B_ss g_ss N_ss K_ss -mat
+save 'ss_results.mat' A_ss B_ss g_ss N_ss K_ss Y_ss -mat

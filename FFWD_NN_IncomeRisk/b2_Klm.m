@@ -3,7 +3,7 @@
 % This is the main code of the paper, which runs the loop to find the  solution of the problem
 
 % INITIAL GUESS - by bringing it here, we make the HJB start from the previous V1 optimum every time it starts with a new PLM
-V1      = ((w.*z + r.*a).^(1-gamma)-1)/(1-gamma)/rho;  % utility from always consuming today's income
+V1      = ((yi + r.*a).^(1-gamma)-1)/(1-gamma)/rho;  % utility from always consuming today's income
 % construct initial V guess in shape of V1_stacked
 V1_stacked = V1(:);
 

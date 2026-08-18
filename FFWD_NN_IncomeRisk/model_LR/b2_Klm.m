@@ -70,7 +70,7 @@ r =  alpha * Zeta * ((B+N).^(alpha-1)) - delta - sigma2*((B+N)./N);
 w = (1-alpha) * Zeta * (B+N).^alpha;
 
 % INITIAL GUESS - by bringing it here, we make the HJB start from the previous V1 optimum every time it starts with a new PLM
-V1      = ((w.*z + r.*a).^(1-gamma)-1)/(1-gamma)/rho;  % utility from always consuming today's income
+V1      = ((yi + r.*a).^(1-gamma)-1)/(1-gamma)/rho;  % utility from always consuming today's income
 % construct initial V guess in shape of V1_stacked
 V1_stacked = zeros(nval_a*nval_z*nval_B*nval_N,1);
 
