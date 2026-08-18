@@ -1,10 +1,15 @@
-% Jesus Fernandez-Villaverde, Samuel Hurtado and Galo Nuno (2018)
+% Jesus Fernandez-Villaverde, Samuel Hurtado and Galo Nuno (2023)
 % Financial Frictions and the Wealth Distribution
+% New feature, countercyclical income risk
+
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Model parameters
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
 
 alpha         = 0.35;                       % Capital share   
 Zeta          = 1;                          % Aggregate productivity
@@ -21,6 +26,12 @@ amax          = 20;                         % max value of individual savings
 z1            = 0.72;                       % labor productivity
 z2            = 1 + la2/la1 * (1-z1);
 
+% New parameter: eta controls the degree of cyclicality of income risk
+mean_logz = la2/(la1+la2)* log(z1) + la1/(la1+la2)*log(z2);
+var_logz = la2/(la1+la2)*(log(z1)- mean_logz)^2 + la1/(la1+la2)*(log(z2)- mean_logz)^2;
+elas = -1;       % elasticity of Var(log y_i) wrt log(Y_t)
+eta = elas/ var_logz;
+
 Bmin          = 0.7;                        % relevant range for aggregate savings
 Bmax          = 2.7;
 Nmin          = 1.2;                        % relevant range for aggregate equity
@@ -28,7 +39,7 @@ Nmax          = 3.2;
                        
 nval_a        = 501;                        % number of points in amin-to-amax range (individual savings)
 nval_z        = 2;                          % number of options for z (the idiosincratic shock)
-nval_B        = 4;                          % number of points in Bmin-to-Bmax range (aggregate savings), on the coarse grid used for the HJB
+nval_B        = 16;                         % number of points in Bmin-to-Bmax range (aggregate savings), on the coarse grid used for the HJB
 nval_N        = 51;                         % number of points in Nmin-to-Nmax range (aggregate equity) , on the coarse grid used for the HJB
 
 nval_BB       = 101;                        % finer grid, used for training the NN, for determining visited range and for the convergence criteria
@@ -149,3 +160,18 @@ a2=squeeze(a(:,:,1,1));    % this one is 2D instead of 4D, we need it for a simp
 % Interest rates and wages (4D matrices that don't depend on anything but parameters) - WE ARE ASSUMING L=1
 r =  alpha * Zeta * ((B+N).^(alpha-1)) - delta - sigma2*((B+N)./N);
 w = (1-alpha) * Zeta * (B+N).^alpha;
+
+% construct grid for countercyclical income
+avg_zi = zeros(nval_a, nval_z, nval_B, nval_N);  %grid for cross section average of income
+Y = Zeta * (B+N).^alpha;  
+
+for iB=1:nval_B
+    for iN=1:nval_N
+        Y_temp = Zeta * (B_grid(iB)+N_grid(iN))^alpha;
+        avg_zi(:,:,iB,iN)= la2/(la1+la2)* z1^( sqrt( 1 + eta* log(Y_temp/Y_ss) ))+...
+                           la1/(la1+la2)* z2^( sqrt( 1 + eta* log(Y_temp/Y_ss) )) ;
+    end
+end
+
+yi = z.^(  sqrt.( 1.+ eta.*log.(Y./Y_ss) )   )./avg_zi .* w ; 
+
