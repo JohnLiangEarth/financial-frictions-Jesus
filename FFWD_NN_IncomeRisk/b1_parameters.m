@@ -26,11 +26,33 @@ amax          = 20;                         % max value of individual savings
 z1            = 0.72;                       % labor productivity
 z2            = 1 + la2/la1 * (1-z1);
 
-% New parameter: eta controls the degree of cyclicality of income risk
+% Parameters governing countercyclical income risk
 mean_logz = la2/(la1+la2)* log(z1) + la1/(la1+la2)*log(z2);
 var_logz = la2/(la1+la2)*(log(z1)- mean_logz)^2 + la1/(la1+la2)*(log(z2)- mean_logz)^2;
-elas = -1;       % elasticity of Var(log y_i) wrt log(Y_t)
-eta = elas/ var_logz;
+V_ss = var_logz;                         % steady-state variance of log productivity
+eta = -1;                                %  Acharya and Dogra(2020): local response of Var(log income) to log aggregate output
+
+% Calibrate h to the expansion and contraction income-risk targets
+d_ec_ = 0.03;                            % Acharya and Dogra (2020): log output in expansion minus log output in contraction
+sigma_c_ = 0.211;                        % Storesletten, Telmer, and Yaron (2004): income-shock standard deviation in contraction
+sigma_e_ = 0.125;                        % Storesletten, Telmer, and Yaron (2004): income-shock standard deviation in expansion
+sigma_avg_ = 0.17;                       % Storesletten, Telmer, and Yaron (2004): average standard deviation
+
+calibrate_h = @(x) [ ...
+    exp(eta*(exp(x(1))/(2*V_ss))*tanh((x(2)-log(Y_ss))/exp(x(1)))) - sigma_e_/sigma_avg_; ...
+    exp(eta*(exp(x(1))/(2*V_ss))*tanh((x(2)-d_ec_-log(Y_ss))/exp(x(1)))) - sigma_c_/sigma_avg_];
+calibration_x0 = [log(0.0035); log(Y_ss)+0.027];
+calibration_options = optimoptions('fsolve','Display','off');
+[calibration_sol, calibration_fval, calibration_exitflag] = ...
+    fsolve(calibrate_h,calibration_x0,calibration_options);
+
+if calibration_exitflag <= 0 || max(abs(calibration_fval)) > 1e-8
+    error('CountercyclicalIncomeRisk:CalibrationFailed', ...
+        'The calibration of h did not converge to the income-risk targets.');
+end
+
+h = exp(calibration_sol(1));
+log_yexp = calibration_sol(2);
 
 Bmin          = 0.7;                        % relevant range for aggregate savings
 Bmax          = 2.7;
@@ -161,25 +183,19 @@ a2=squeeze(a(:,:,1,1));    % this one is 2D instead of 4D, we need it for a simp
 r =  alpha * Zeta * ((B+N).^(alpha-1)) - delta - sigma2*((B+N)./N);
 w = (1-alpha) * Zeta * (B+N).^alpha;
 
-% construct grid for countercyclical income
-avg_zi = zeros(nval_a, nval_z, nval_B, nval_N);  %grid for cross section average of income
+% Construct grid for countercyclical income
+avg_zi = zeros(nval_a, nval_z, nval_B, nval_N);  % grid for cross-sectional average of effective productivity
 Y_grid = Zeta * (B+N).^alpha;
-
-income_risk_term = 1 + eta.*log(Y_grid./Y_ss);
-if any(income_risk_term(:) < 0)
-    warning('CountercyclicalIncomeRisk:NegativeSqrt', ...
-        'The countercyclical-income square-root argument is negative.');
-    error('Stopping because the income process would produce complex values.');
-end
-
+theta_Y = exp((eta*h/(2*V_ss)).*tanh(log(Y_grid./Y_ss)./h));
 
 for iB=1:nval_B
     for iN=1:nval_N
         Y_temp = Zeta * (B_grid(iB)+N_grid(iN))^alpha;
-        avg_zi(:,:,iB,iN)= la2/(la1+la2)* z1^( sqrt( 1 + eta* log(Y_temp/Y_ss) ))+...
-                           la1/(la1+la2)* z2^( sqrt( 1 + eta* log(Y_temp/Y_ss) )) ;
+        theta_temp = exp((eta*h/(2*V_ss))*tanh(log(Y_temp/Y_ss)/h));
+        avg_zi(:,:,iB,iN) = la2/(la1+la2)*z1^theta_temp + ...
+                            la1/(la1+la2)*z2^theta_temp;
     end
 end
 
-yi = z.^(  sqrt.( 1.+ eta.*log.(Y_grid./Y_ss) )   )./avg_zi .* w ;
+yi = w.*z.^theta_Y./avg_zi;
 

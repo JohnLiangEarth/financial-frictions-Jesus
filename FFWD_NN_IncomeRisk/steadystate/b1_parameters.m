@@ -26,12 +26,6 @@ amax          = 20;                         % max value of individual savings
 z1            = 0.72;                       % labor productivity
 z2            = 1 + la2/la1 * (1-z1);
 
-% New parameter: eta controls the degree of cyclicality of income risk
-mean_logz = la2/(la1+la2)* log(z1) + la1/(la1+la2)*log(z2);
-var_logz = la2/(la1+la2)*(log(z1)- mean_logz)^2 + la1/(la1+la2)*(log(z2)- mean_logz)^2;
-elas = -1;       % elasticity of Var(log y_i) wrt log(Y_t)
-eta = elas/ var_logz;
-
 Bmin          = 0.7;                        % relevant range for aggregate savings
 Bmax          = 2.7;
 Nmin          = 1.2;                        % relevant range for aggregate equity
