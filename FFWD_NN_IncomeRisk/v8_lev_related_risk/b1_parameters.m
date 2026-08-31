@@ -41,7 +41,7 @@ Nmax          = 3.2;
                        
 nval_a        = 501;                        % number of points in amin-to-amax range (individual savings)
 nval_z        = 2;                          % number of options for z (the idiosincratic shock)
-nval_B        = 8;                          % number of points in Bmin-to-Bmax range (aggregate savings), on the coarse grid used for the HJB
+nval_B        = 16;                          % number of points in Bmin-to-Bmax range (aggregate savings), on the coarse grid used for the HJB
 nval_N        = 51;                         % number of points in Nmin-to-Nmax range (aggregate equity) , on the coarse grid used for the HJB
 
 nval_BB       = 101;                        % finer grid, used for training the NN, for determining visited range and for the convergence criteria
@@ -188,7 +188,7 @@ disp("Difference between previous income grid and current income grid")
 temp = (yi_previous-yi)./yi;
 summary(temp(:));
 
-% Report idiosyncratic labor-income risk and its covariance with leverage.
+% Report idiosyncratic labor-income risk and its correlation with leverage.
 income_state_prob = reshape([la2,la1]./(la1+la2),[1,nval_z,1,1]);
 log_yi_report = log(yi(1,:,:,:));
 mean_log_yi_report = sum(income_state_prob.*log_yi_report,2);
@@ -232,73 +232,3 @@ grid on
 box on
 hold off
 
-% Calculate the mu^N = 0 locus and the second zero locus on the fine B grid.
-N_muN_zero = NaN(numel(BB_grid),numel(NN_grid));
-N_second_zero = NaN(numel(BB_grid),numel(NN_grid));
-
-for iB = 1:numel(BB_grid)
-    B_temp = BB_grid(iB);
-
-    muN_equation = @(N_temp) (...
-        alpha.*(N_temp+B_temp).^(alpha-1)-delta-rhohat + ...
-        sigma^2.*((N_temp+B_temp)./N_temp-1).* ...
-        (N_temp+B_temp)./N_temp).*N_temp;
-    muN_on_N_grid = muN_equation(NN_grid);
-    N_roots = NN_grid(muN_on_N_grid == 0);
-    root_intervals = find(muN_on_N_grid(1:end-1).* ...
-        muN_on_N_grid(2:end) < 0);
-
-    for iroot = 1:numel(root_intervals)
-        root_interval = root_intervals(iroot);
-        N_roots(end+1,1) = fzero(muN_equation, ...
-            [NN_grid(root_interval),NN_grid(root_interval+1)]); %#ok<SAGROW>
-    end
-
-    if ~isempty(N_roots)
-        N_roots = unique(N_roots);
-        N_muN_zero(iB,1:numel(N_roots)) = N_roots;
-    end
-
-    second_equation = @(N_temp) ...
-        (1-alpha).*(N_temp+B_temp).^alpha + ...
-        (alpha.*(N_temp+B_temp).^(alpha-1)-delta- ...
-        sigma^2.*(N_temp+B_temp)./N_temp).*B_temp - 1.1;
-    second_on_N_grid = second_equation(NN_grid);
-    N_roots = NN_grid(second_on_N_grid == 0);
-    root_intervals = find(second_on_N_grid(1:end-1).* ...
-        second_on_N_grid(2:end) < 0);
-
-    for iroot = 1:numel(root_intervals)
-        root_interval = root_intervals(iroot);
-        N_roots(end+1,1) = fzero(second_equation, ...
-            [NN_grid(root_interval),NN_grid(root_interval+1)]); %#ok<SAGROW>
-    end
-
-    if ~isempty(N_roots)
-        N_roots = unique(N_roots);
-        N_second_zero(iB,1:numel(N_roots)) = N_roots;
-    end
-end
-
-if all(isnan(N_muN_zero),'all')
-    warning('ZeroCurve:NoMuNRoot', ...
-        'No mu^N = 0 root was detected between Nmin and Nmax.');
-end
-if all(isnan(N_second_zero),'all')
-    warning('ZeroCurve:NoSecondRoot', ...
-        'No root of the second equation was detected between Nmin and Nmax.');
-end
-
-figure('Name','Aggregate zero loci');
-hold on
-muN_line = plot(BB_grid,N_muN_zero,'b-','LineWidth',1.5);
-second_line = plot(BB_grid,N_second_zero,'r--','LineWidth',1.5);
-xlabel('$B_t$','Interpreter','latex')
-ylabel('$N_t$','Interpreter','latex')
-title('Aggregate zero loci','Interpreter','latex')
-legend([muN_line(1),second_line(1)], ...
-    {'$\mu^N=0$', ...
-    '$(1-\alpha)(N+B)^\alpha+[\alpha(N+B)^{\alpha-1}-\delta-\sigma^2(N+B)/N]B=0$'}, ...
-    'Interpreter','latex','Location','best')
-grid on
-close;
